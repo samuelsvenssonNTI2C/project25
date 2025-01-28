@@ -1,0 +1,12 @@
+
+* {
+    margin: 0px
+}
+
+header {
+    display: flex;
+    #login_box {
+        align-self: center;
+        justify-self: center;
+    }
+}

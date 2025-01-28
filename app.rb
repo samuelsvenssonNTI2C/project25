@@ -1,9 +1,10 @@
 require 'sinatra'
 require 'sinatra/reloader'
-require 'sessions'
 require 'slim'
 require 'sqlite3'
 require 'bcrypt'
+
+enable :sessions
 
 get('/') do
 	redirect('/home')
@@ -35,7 +36,7 @@ get('user/show/:id') do
 end
 
 get('/images') do
-
+	slim(:'images/index')
 end
 
 post('/images/create') do
@@ -43,9 +44,14 @@ post('/images/create') do
 end
 
 get('/images/new') do
-
+	slim(:'images/new')
 end
 
 get('/images/show/:id') do
+	imageId = params[:id]
+	slim(:'images/show', locals:{id:imageId})
+end
 
+get('/stats') do
+	slim(:'stats/index')
 end
