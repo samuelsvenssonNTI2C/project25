@@ -4,16 +4,20 @@ html lang="en"
         meta charset="UTF-8"/
         meta name="viewport" content="width=device-width, initial-scale=1.0"/
         title Document
+        link rel="stylesheet" href="style/style.css"/
     body 
         header 
-            h3 Välkommen till
-            section id='login_box'
-                - if session[:username] != nil 
-                    p = session[:username]
-                - else
-                    a href="/user/index" Logga in
+            section id='top'
+                section id='login_box'
+                    - if session[:username] != nil 
+                        p = session[:username]
+                    - else
+                        a href="/user/index" Logga in
+                section id='title'
+                    h3 Välkommen till
+                    h1 Namn
 
-            h1 Namn
+                
 
             nav
                 ul 
