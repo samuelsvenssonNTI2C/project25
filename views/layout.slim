@@ -4,15 +4,15 @@ html lang="en"
         meta charset="UTF-8"/
         meta name="viewport" content="width=device-width, initial-scale=1.0"/
         title Document
-        link rel="stylesheet" href="style/style.css"/
+        link rel="stylesheet" href="/style/style.css"/
     body 
         header 
             section id='top'
                 section id='login_box'
                     - if session[:username] != nil 
-                        p = session[:username]
+                        a class='navLink' href="/user/show/#{session[:userId]}" session[:username]
                     - else
-                        a href="/user/index" Logga in
+                        a class='navLink' href="/user/index" Logga in
                 section id='title'
                     h3 Välkommen till
                     h1 Namn
@@ -20,13 +20,14 @@ html lang="en"
                 
 
             nav
-                ul 
+                ul
                     li 
-                        a href="#" placeholder
+                        a class='navLink' href="/home" Home
                     li 
-                        a href="#" placeholder
+                        a class='navLink' href="/images" Images
                     li 
-                        a href="#" placeholder
+                        a class='navLink' href="/stats" Statistics
+                    
 
         main 
             ==yield

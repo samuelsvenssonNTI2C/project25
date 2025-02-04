@@ -6,6 +6,12 @@ require 'bcrypt'
 
 enable :sessions
 
+def getDatabase()
+	db = SQLite3::Database.new('db/database.db')
+	db.results_as_hash = true
+	return db
+end
+
 get('/') do
 	redirect('/home')
 end
@@ -36,7 +42,8 @@ get('user/show/:id') do
 end
 
 get('/images') do
-	slim(:'images/index')
+	colors = getDatabase().execute('SELECT * FROM colors')
+	slim(:'images/index', locals:{colors:colors})
 end
 
 post('/images/create') do
