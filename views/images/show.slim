@@ -1,0 +1,11 @@
+section id='imageShowMain'
+    section id='toplist'
+    section id='card'
+        div id='color' style="background-color: #{color['hexCode']}"
+
+    section id='functions'
+        h3 Amount in market: #{color['amount']}
+        section
+            section id='sellOrders'
+            -sellOrders.each |order| do 
+                h3 order[]

@@ -37,7 +37,7 @@ get('user/new') do
 end
 
 get('user/show/:id') do
-	userId = params[:id]
+	userId = params[:id].to_i
 	slim(:'user/show', locals:{id:userId})
 end
 
@@ -55,8 +55,11 @@ get('/images/new') do
 end
 
 get('/images/show/:id') do
-	imageId = params[:id]
-	slim(:'images/show', locals:{id:imageId})
+	id = params[:id].to_i
+	color = getDatabase().execute("SELECT * FROM colors WHERE id = #{id}").first
+	colorSellOrders = getDatabase().execute("SELECT * FROM sellOrders WHERE colorId = #{id} ORDER BY price ASC LIMIT 5")
+	colorBuyOrders = getDatabase().execute("SELECT * FROM buyOrders WHERE colorId = #{id} ORDER BY price DESC LIMIT 5")
+	slim(:'images/show', locals:{color:color, sellOrders:colorSellOrders, buyOrders:colorBuyOrders})
 end
 
 get('/stats') do
