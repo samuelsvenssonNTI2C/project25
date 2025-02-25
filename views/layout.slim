@@ -10,23 +10,29 @@ html lang="en"
             section id='top'
                 section id='login_box'
                     - if session[:username] != nil 
-                        a class='navLink' href="/user/show/#{session[:userId]}" session[:username]
+                        a class='navLink' href="/users/show/#{session[:userId]}" session[:username]
                     - else
-                        a class='navLink' href="/user/index" Logga in
-                section id='title'
-                    h3 Välkommen till
+                        a class='navLink' href="/users/login" Logga in
+                div id='title'
+                    h1 Welcome to
                     h1 ColourCorner
 
                 
 
             nav
                 ul
-                    li 
-                        a class='navLink' href="/home" Home
-                    li 
-                        a class='navLink' href="/images" Images
-                    li 
-                        a class='navLink' href="/stats" Statistics
+                    li
+                        h2
+                            a class='navLink' href="/home" Home
+                    li
+                        h2
+                            a class='navLink' href="/images" Colors
+                    li
+                        h2
+                            a class='navLink' href="/images/new" Create Color
+                    li
+                        h2
+                            a class='navLink' href="/stats" Statistics
                     
 
         main 

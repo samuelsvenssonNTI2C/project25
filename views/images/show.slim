@@ -1,11 +1,28 @@
-section id='imageShowMain'
+article id='imageShow'
     section id='toplist'
+        h2 Top 10 owners of this image
+
+
     section id='card'
         div id='color' style="background-color: #{color['hexCode']}"
+        h2 Hexcode: #{color['hexCode']}
 
     section id='functions'
-        h3 Amount in market: #{color['amount']}
-        section
-            section id='sellOrders'
-            -sellOrders.each |order| do 
+        section id='usersOrder'
+            h3 Your Order
+            form action="/order/create" method="post"
+                input type="hidden" name="colorId" value="#{color['id']}"
+                input type="number" name="amount" placeholder="Amount"
+                input type="number" name="price" placeholder="Price per unit"
+                input type="submit" name="orderType" value="Sell"
+                input type="submit" name="orderType" value="Buy"
+
+        section id='sellOrders'
+            h2 Sell Orders
+            -sellOrders.each do |order|
+                h3 order[]
+
+        section id='buyOrders'
+            h2 Buy Orders
+            -buyOrders.each do |order|
                 h3 order[]

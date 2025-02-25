@@ -1,5 +1,6 @@
 
 * {
+    box-sizing: border-box;
     margin: 0px;
     padding: 0px;
 }
@@ -7,7 +8,7 @@
 header {
     display: flex;
     width: 100%;
-    height: 20vh;
+    height: 15vh;
     background-color: grey;
     flex-direction: column;
 
@@ -49,42 +50,76 @@ header {
 
 main {
     width: auto;
-    height: auto;
+    min-height: 85vh;
 }
 
-.colorCard {
-    width: min-content;
-    height: min-content;
+#home{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+    grid-template-areas:
+    'user top';
+    width: 100%;
+    #user{
+        grid-area: user;
+        background-color: red;
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1fr;
+        grid-template-areas:
+        'info'
+        'orders';
+        #userInfo{
+            grid-area: info;
+            background-color: green;
+        }
+        #userOrders{
+            grid-area: orders;
+            background-color: blue;
+        }
+    }
+    #top{
+        grid-area: top;
+        background-color: yellow;
+    }
+}
 
-    margin: 10px;
-
-    border-style: solid;
-    border-color: darkslategray;
-    border-width: 1px;
-    border-radius: 5%;
+#imageIndex{
+    .colorCard {
+        width: min-content;
+        height: min-content;
     
-
-    #colorImage {
-        width: 15vw;
-        height: 15vw;
-        border-radius: 5% 5% 0% 0%;
-    }
-    #colorInfo {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+        margin: 10px;
+    
+        border-style: solid;
+        border-color: darkslategray;
+        border-width: 1px;
+        border-radius: 5%;
+        
+    
+        #colorImage {
+            width: 15vw;
+            height: 15vw;
+            border-radius: 5% 5% 0% 0%;
+        }
+        #colorInfo {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
     }
 }
 
-#imageShowMain{
+
+#imageShow{
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-rows: 1fr;
     grid-template-areas:
     'list card func';
     width: 100%;
-    height: 80vh;
+    height: 85vh;
     #toplist{
         grid-area: list;
         background-color: red;
@@ -92,6 +127,7 @@ main {
     #card{
         grid-area: card;
         display: flex;
+        flex-direction: column;
         justify-content: center;
         align-items: center;
         div{
@@ -106,5 +142,29 @@ main {
     #functions{
         grid-area: func;
         background-color: yellow;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        grid-template-areas:
+        'order order'
+        'sellList buyList';
+        #usersOrder{
+            grid-area: order;
+            background-color: green;
+        }
+        #sellOrders{
+            grid-area: sellList;
+            background-color: blue;
+        }
+        #buyOrders{
+            grid-area: buyList;
+            background-color: purple;
+        }
     }
+}
+
+footer{
+    width: 100%;
+    height: 30vh;
+    background-color: grey;
 }
