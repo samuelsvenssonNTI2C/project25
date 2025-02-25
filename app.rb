@@ -1,5 +1,6 @@
 require 'sinatra'
 require 'sinatra/reloader'
+require 'sinatra/flash'
 require 'slim'
 require 'sqlite3'
 require 'bcrypt'
@@ -22,21 +23,31 @@ get('/home') do
 	slim(:home)
 end
 
-post('/user/login') do
+post('/users/login') do
 	# Checka allt med login och databas!!!
 	username = params[:username]
 	password = params[:password]
+
+	if username.empty?
+		flash[:loginError] = 'Missing username'
+		redirect('/users/login')
+	elsif password.empty?
+		flash[:username] = username
+		flash[:loginError] = 'Missing password'
+		redirect('/users/login')
+	end
+
 	user = getDatabase().execute('SELECT * FROM users WHERE username = ?', username).first
 	pwDigest = user['pwDigest']
 
 	if BCrypt::Password.new(pwDigest) == password
 		session[:userId] = user['id']
 		session[:username] = user['username']
-		session[:error] = nil
 		redirect('/home')
 	else
-		session[:error] = 'Fel användarnamn eller lösenord'
-		redirect('/user/login')
+		flash[:username] = username
+		flash[:loginError] = 'Wrong username or password'
+		redirect('/users/login')
 	end
 end
 
@@ -48,13 +59,27 @@ post('/users/create') do
 	username = params[:username]
 	password = params[:password]
 	passwordConfirmation = params[:passwordConfirmation]
+
+	if username.empty?
+		flash[:registerError] = 'Missing username'
+		redirect('/users/new')
+	elsif password.empty?
+		flash[:registerError] = 'Missing password'
+		flash[:username] = username
+		redirect('/users/new')
+	elsif passwordConfirmation.empty?
+		flash[:username] = username
+		flash[:registerError] = 'Missing password confirmation'
+		redirect('/users/new')
+	end
+
 	if password == passwordConfirmation
 		passwordDigest = BCrypt::Password.create(password)
 		getDatabase.execute("INSERT INTO users (username, password, money, dailyImage) VALUES (?,?,?,?)", [username, passwordDigest, 0, false])
-		session[:error] = nil
 		redirect('/home')
 	else
-		session[:error] = 'Lösenorden matchar inte'
+		flash[:username] = username
+		flash[:registerError] = 'Passwords do not match'
 		redirect('/users/new')
 	end
 end
@@ -97,8 +122,8 @@ get('/images/show/:id') do
 	colorSellOrders = db.execute("SELECT * FROM sellOrders WHERE colorId = #{id} ORDER BY price ASC LIMIT 5")
 	colorBuyOrders = db.execute("SELECT * FROM buyOrders WHERE colorId = #{id} ORDER BY price DESC LIMIT 5")
 	# Relations tabell userColor: userId, amount, colorId
-	# toplist = db.execute("SELECT * FROM users WHERE id = (SELECT userId FROM userColor WHERE colorId = #{id} ORDER BY amount DESC LIMIT 10"))
-	toplist = []
+	toplist = db.execute("SELECT * FROM users WHERE id = (SELECT userId FROM userColor WHERE colorId = #{id} ORDER BY amount DESC LIMIT 10)")
+	# toplist = []
 	slim(:'images/show', locals:{color:color, sellOrders:colorSellOrders, buyOrders:colorBuyOrders}, toplist:toplist)
 end
 

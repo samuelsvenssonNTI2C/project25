@@ -4,5 +4,5 @@ article id='imageIndex'
                 a href='/images/show/#{color["id"]}'
                     div id='colorImage' style='background-color: #{color["hexCode"]}'
                 section id='colorInfo'
+                    h4 = 'HexCode: ' + color['hexCode']
                     h4 = 'Amount: ' + color['amount'].to_s
-                    h4 = 'Price: ' + color['price'].to_s

@@ -1,5 +1,10 @@
+-if flash[:registerError]
+    p.error = flash[:registerError] 
 form action="/users/create" method="post"
-    input type="text" name="username" placeholder="Användarnamn"
+    -if flash[:username]
+        input type="text" name="username" value=flash[:username] placeholder="Användarnamn"
+    -else
+        input type="text" name="username" placeholder="Användarnamn"
     input type="password" name="password" placeholder="Lösenord"
     input type="password" name="passwordConfirmation" placeholder="Bekräfta lösenord"
     input type="submit" value="Registrera"
