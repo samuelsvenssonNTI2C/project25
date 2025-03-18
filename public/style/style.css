@@ -24,7 +24,11 @@ header {
         }
         #login_box {
             justify-self: end;
+            display: flex;
             margin: 5px 5px 0px 0px;
+            a {
+                margin: 5px;
+            }
         }
     }
 
@@ -144,11 +148,12 @@ main {
         grid-area: func;
         background-color: yellow;
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr;
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1fr 1fr;
         grid-template-areas:
-        'order order'
-        'sellList buyList';
+        'order'
+        'sellList'
+        'buyList';
         #usersOrder{
             grid-area: order;
             background-color: green;
@@ -160,6 +165,12 @@ main {
         #buyOrders{
             grid-area: buyList;
             background-color: purple;
+        }
+        .orderInfo{
+            display: flex;
+            p{
+                margin: 2px 5px 2px 5px;
+            }
         }
     }
 }

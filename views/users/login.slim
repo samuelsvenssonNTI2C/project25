@@ -1,5 +1,7 @@
 -if flash[:loginError]
-    p.error = flash[:loginError] 
+    p.error = flash[:loginError]
+- if flash[:loginRequired]
+    p.error = flash[:loginRequired]
 form action="/users/login" method="post"
     -if flash[:username]
         input type="text" name="username" value=flash[:username] placeholder="Användarnamn"

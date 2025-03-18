@@ -1,3 +1,9 @@
+- if flash[:imageError]
+    h3 = flash[:imageError]
+- if timeUntilNextImage > 0
+    h3 = "You must wait #{timeUntilNextImage / 3600} hours, #{(timeUntilNextImage - 3600 * (timeUntilNextImage / 3600)) / 60} minutes and #{timeUntilNextImage - 60 * (timeUntilNextImage / 60)} seconds before creating another image."
+- else
+    h3 you can create a new image now.
 form action="/images/create" method="post" 
     input# type="color" name="hexCode" value="#ff0000"
     input type="submit" value="Create Color"

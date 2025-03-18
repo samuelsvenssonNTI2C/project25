@@ -10,7 +10,8 @@ html lang="en"
             section id='top'
                 section id='login_box'
                     - if session[:username] != nil 
-                        a class='navLink' href="/users/show/#{session[:userId]}" session[:username]
+                        a class='navLink' href="/users/show/#{session[:userId]}" #{session[:username]}
+                        a class='navLink' href="/users/logout" Logga ut
                     - else
                         a class='navLink' href="/users/login" Logga in
                 div id='title'
