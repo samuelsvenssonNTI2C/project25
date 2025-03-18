@@ -7,7 +7,7 @@ require 'bcrypt'
 
 enable :sessions
 
-# lägg till admin behörighet
+# lägg till admin behörighet via checkbox
 # ta bort användare
 # ta bort/lägg till färg
 # ta bort orders
@@ -16,6 +16,7 @@ enable :sessions
 # visa anävndarens pengar på startsidan (och layout)
 
 # Hantera buy/sellorders så att de köpes/säljes och i rätt ordning
+# Updatera/ta bort orders
 
 # stats sidan
 # sorterbar lista över användare och deras pengar
@@ -25,6 +26,12 @@ enable :sessions
 # visa användarens pengar
 # visa användarens färger och antal (sorterbar)
 # visa användarens köp och sälj ordrar
+
+# before för inloggning
+
+# kolla inloggad användare vid skyddade actions
+
+# MVC
 
 
 def getDatabase()
@@ -85,7 +92,7 @@ post('/users/login') do
 end
 
 get('/users/logout') do
-	session.destroy
+	session.clear
 	redirect('/home')
 end
 
@@ -192,12 +199,14 @@ get('/images/show/:id') do
 	id = params[:id].to_i
 	color = db.execute("SELECT * FROM colors WHERE id = #{id}").first
 	users = db.execute("SELECT * FROM users")
-	# print users
-	userSellOrders = db.execute("SELECT * FROM sellOrders WHERE userId = #{session[:userId]} AND colorId = #{id}")
-	userBuyOrders = db.execute("SELECT * FROM buyOrders WHERE userId = #{session[:userId]} AND colorId = #{id}")
+	
+	if session[:userId] != nil
+		userSellOrders = db.execute("SELECT * FROM sellOrders WHERE userId = #{session[:userId]} AND colorId = #{id}")
+		userBuyOrders = db.execute("SELECT * FROM buyOrders WHERE userId = #{session[:userId]} AND colorId = #{id}")
+	end
 	colorSellOrders = db.execute("SELECT * FROM sellOrders WHERE colorId = #{id} ORDER BY price ASC LIMIT 5")
 	colorBuyOrders = db.execute("SELECT * FROM buyOrders WHERE colorId = #{id} ORDER BY price DESC LIMIT 5")
-	toplist = db.execute("SELECT * FROM users WHERE id = (SELECT userId FROM userColor WHERE colorId = #{id} ORDER BY amount DESC LIMIT 10)")
+	toplist = db.execute("SELECT * FROM users WHERE id IN (SELECT userId FROM userColor WHERE colorId = #{id} ORDER BY amount DESC LIMIT 10)")
 	slim(:'images/show', locals:{color:color, users:users, userSellOrders:userSellOrders, userBuyOrders:userBuyOrders, sellOrders:colorSellOrders, buyOrders:colorBuyOrders, toplist:toplist})
 end
 
@@ -219,18 +228,23 @@ post('/order/create') do
 	user = db.execute("SELECT * FROM users WHERE id = ?", userId).first
 	userAmountOfColor = db.execute("SELECT Amount from userColor WHERE userId = ? AND colorId = ?", [userId, colorId]).first
 
-	if orderType == 'buy'
+	puts orderType
+
+	if orderType == 'Buy'
 		if user['money'] < price*amount
 			flash[:orderError] = 'Not enough money'
 			redirect("/images/show/#{colorId}")
 		end
 		db.execute("INSERT INTO buyOrders (userId, colorId, price, amount) VALUES (?, ?, ?, ?)", [userId, colorId, price, amount])
-	else
+	elif orderType == 'Sell'
 		if userAmountOfColor == nil || userAmountOfColor['amount'] < amount
 			flash[:orderError] = 'Not enough of this color'
 			redirect("/images/show/#{colorId}")
 		end
 		db.execute("INSERT INTO sellOrders (userId, colorId, price, amount) VALUES (?, ?, ?, ?)", [userId, colorId, price, amount])
+	else 
+		flash[:orderError] = 'Invalid order type'
+		redirect("/images/show/#{colorId}")
 	end
 	redirect("/images/show/#{colorId}")
 end

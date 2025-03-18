@@ -9,29 +9,32 @@ article id='imageShow'
 
     section id='functions'
         section id='usersOrder'
-            h3 Your Orders
-            - if flash[:orderError]
-                p = flash[:orderError]
-            form action="/order/create" method="post"
-                input type="hidden" name="colorId" value="#{color['id']}"
-                input type="number" name="amount" placeholder="Amount"
-                input type="number" name="price" placeholder="Price per unit"
-                input type="submit" name="orderType" value="Sell"
-                input type="submit" name="orderType" value="Buy"
-            h4 Sell Orders
-            -userSellOrders.each do |order|
-                section.orderInfo 
-                    - user = users.find {|u| u["id"] == order["userId"]}
-                    p = "User: #{user ? user["username"] : "Unknown"}"
-                    p = "Amount: #{order['amount']}"
-                    p = "Price: #{order['price']}"
-            h4 Buy Orders
-            -userBuyOrders.each do |order|
-                section.orderInfo
-                    - user = users.find {|u| u["id"] == order["userId"]}
-                    p = "User: #{user ? user["username"] : "Unknown"}"
-                    p = "Amount: #{order['amount']}"
-                    p = "Price: #{order['price']}"
+            - if session[:userId] == nil 
+                h3 You need to be logged in to order
+            - else
+                h3 Your Orders
+                - if flash[:orderError]
+                    p = flash[:orderError]
+                form action="/order/create" method="post"
+                    input type="hidden" name="colorId" value="#{color['id']}"
+                    input type="number" name="amount" placeholder="Amount"
+                    input type="number" name="price" placeholder="Price per unit"
+                    input type="submit" name="orderType" value="Sell"
+                    input type="submit" name="orderType" value="Buy"
+                h4 Sell Orders
+                -userSellOrders.each do |order|
+                    section.orderInfo 
+                        - user = users.find {|u| u["id"] == order["userId"]}
+                        p = "User: #{user ? user["username"] : "Unknown"}"
+                        p = "Amount: #{order['amount']}"
+                        p = "Price: #{order['price']}"
+                h4 Buy Orders
+                -userBuyOrders.each do |order|
+                    section.orderInfo
+                        - user = users.find {|u| u["id"] == order["userId"]}
+                        p = "User: #{user ? user["username"] : "Unknown"}"
+                        p = "Amount: #{order['amount']}"
+                        p = "Price: #{order['price']}"
 
         section id='sellOrders'
             h2 Sell Orders
