@@ -7,7 +7,7 @@ require 'bcrypt'
 
 enable :sessions
 
-# lägg till admin behörighet via checkbox
+# lägg till admin behörighet via checkbox --
 # ta bort användare
 # ta bort/lägg till färg
 # ta bort orders
@@ -27,17 +27,31 @@ enable :sessions
 # visa användarens färger och antal (sorterbar)
 # visa användarens köp och sälj ordrar
 
-# before för inloggning
+# before för inloggning --?
 
 # kolla inloggad användare vid skyddade actions
 
 # MVC
 
 
+
+
 def getDatabase()
 	db = SQLite3::Database.new('db/database.db')
 	db.results_as_hash = true
 	return db
+end
+
+def checkOrders()
+	
+end
+
+before('/images/new') do
+	if session[:userId] == nil
+		flash[:loginRequired] = 'You need to be logged in to do this'
+		session[:before] = true
+		redirect('/users/login')
+	end
 end
 
 get('/') do
@@ -78,12 +92,10 @@ post('/users/login') do
 	if BCrypt::Password.new(pwDigest) == password
 		session[:userId] = user['id']
 		session[:username] = user['username']
-		if session[:redirect] != nil
-			redirect = session[:redirect]
-			session[:redirect] = nil
-			redirect(redirect)
-		end
-		redirect('/home')
+
+		if !session[:before]
+			redirect('/home')
+		end	
 	else
 		flash[:username] = username
 		flash[:loginError] = 'Wrong username or password'
@@ -97,7 +109,6 @@ get('/users/logout') do
 end
 
 get('/users/login') do
-
 	slim(:'users/login')
 end
 
@@ -105,6 +116,12 @@ post('/users/create') do
 	username = params[:username]
 	password = params[:password]
 	passwordConfirmation = params[:passwordConfirmation]
+	admin = params[:admin]
+	if admin == true
+		adminLevel = 1
+	else
+		adminLevel = 0
+	end
 
 	if username.empty?
 		flash[:registerError] = 'Missing username'
@@ -126,7 +143,7 @@ post('/users/create') do
 
 	if password == passwordConfirmation
 		passwordDigest = BCrypt::Password.create(password)
-		getDatabase.execute("INSERT INTO users (username, password, money, imageCreated, admin) VALUES (?,?,?,?)", [username, passwordDigest, 0, 0, 0])
+		getDatabase.execute("INSERT INTO users (username, password, money, imageCreated, admin) VALUES (?,?,?,?)", [username, passwordDigest, 0, 0, adminLevel])
 		session[:userId] = user['id']
 		session[:username] = user['username']
 		if session[:redirect] != nil
@@ -181,14 +198,14 @@ post('/images/create') do
 end
 
 get('/images/new') do
-	if session[:userId] == nil
-		flash[:loginRequired] = 'You need to be logged in to create an image'
-		session[:redirect] = '/images/new'
-		redirect('/users/login')
-	end
+	# if session[:userId] == nil
+	# 	flash[:loginRequired] = 'You need to be logged in to create an image'
+	# 	session[:redirect] = '/images/new'
+	# 	redirect('/users/login')
+	# end
 
 	user = getDatabase().execute('SELECT * FROM users WHERE id = ?', session[:userId]).first
-	timeSinceLastImage = Time.now.to_i - user['imageCreated']
+	timeSinceLastImage = Time.now.to_i - user['imageCreated'].to_i
 	timeUntilNextImage = 60*60*24 - timeSinceLastImage
 
 	slim(:'images/new', locals:{timeUntilNextImage:timeUntilNextImage})
@@ -236,7 +253,7 @@ post('/order/create') do
 			redirect("/images/show/#{colorId}")
 		end
 		db.execute("INSERT INTO buyOrders (userId, colorId, price, amount) VALUES (?, ?, ?, ?)", [userId, colorId, price, amount])
-	elif orderType == 'Sell'
+	elsif orderType == 'Sell'
 		if userAmountOfColor == nil || userAmountOfColor['amount'] < amount
 			flash[:orderError] = 'Not enough of this color'
 			redirect("/images/show/#{colorId}")
@@ -246,6 +263,9 @@ post('/order/create') do
 		flash[:orderError] = 'Invalid order type'
 		redirect("/images/show/#{colorId}")
 	end
+
+
+
 	redirect("/images/show/#{colorId}")
 end
 
