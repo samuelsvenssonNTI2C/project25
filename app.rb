@@ -5,9 +5,12 @@ require 'slim'
 require 'sqlite3'
 require 'bcrypt'
 
+require_relative './model.rb'
+
 enable :sessions
 
 # lägg till admin behörighet via checkbox --
+	# admin kolumn => error
 # ta bort användare
 # ta bort/lägg till färg
 # ta bort orders
@@ -15,8 +18,8 @@ enable :sessions
 
 # visa anävndarens pengar på startsidan (och layout)
 
-# Hantera buy/sellorders så att de köpes/säljes och i rätt ordning
-# Updatera/ta bort orders
+# Hantera buy/sellorders så att de köpes/säljes och i rätt ordning --?
+# Updatera/ta bort orders --?
 
 # stats sidan
 # sorterbar lista över användare och deras pengar
@@ -31,8 +34,7 @@ enable :sessions
 
 # kolla inloggad användare vid skyddade actions
 
-# MVC
-
+# MVC --
 
 
 
@@ -40,18 +42,6 @@ def getDatabase()
 	db = SQLite3::Database.new('db/database.db')
 	db.results_as_hash = true
 	return db
-end
-
-def checkOrders()
-	
-end
-
-before('/images/new') do
-	if session[:userId] == nil
-		flash[:loginRequired] = 'You need to be logged in to do this'
-		session[:before] = true
-		redirect('/users/login')
-	end
 end
 
 get('/') do
@@ -65,7 +55,7 @@ get('/home') do
 	slim(:home)
 end
 
-# users ------------------------------------------------------------------------------
+# users ------------------------------------------------------------------
 post('/users/login') do
 	username = params[:username]
 	password = params[:password]
@@ -79,7 +69,7 @@ post('/users/login') do
 		redirect('/users/login')
 	end
 
-	user = getDatabase().execute('SELECT * FROM users WHERE username = ?', username).first
+	user = getUsersByName(username).first
 
 	if user == nil
 		flash[:loginError] = 'Username does not exist
@@ -93,9 +83,12 @@ post('/users/login') do
 		session[:userId] = user['id']
 		session[:username] = user['username']
 
-		if !session[:before]
-			redirect('/home')
-		end	
+		if session[:redirect] != nil
+			redirect = session[:redirect]
+			session[:redirect] = nil
+			redirect(redirect)
+		end
+		redirect('/home')
 	else
 		flash[:username] = username
 		flash[:loginError] = 'Wrong username or password'
@@ -136,14 +129,15 @@ post('/users/create') do
 		redirect('/users/new')
 	end
 
-	if getDatabase().execute('SELECT * FROM users WHERE username = ?', username).first != nil
+	if getUsersByName(username).first != nil
 		flash[:registerError] = 'Username already exists'
 		redirect('/users/new')
 	end
 
 	if password == passwordConfirmation
 		passwordDigest = BCrypt::Password.create(password)
-		getDatabase.execute("INSERT INTO users (username, password, money, imageCreated, admin) VALUES (?,?,?,?)", [username, passwordDigest, 0, 0, adminLevel])
+		# getDatabase.execute("INSERT INTO users (username, password, money, imageCreated, admin) VALUES (?,?,?,?)", [username, passwordDigest, 0, 0, adminLevel])
+		createUser(username, passwordDigest, adminLevel)
 		session[:userId] = user['id']
 		session[:username] = user['username']
 		if session[:redirect] != nil
@@ -168,43 +162,45 @@ get('users/show/:id') do
 	slim(:'users/show', locals:{id:userId})
 end
 
-# images ------------------------------------------------------------------------------
+# images -----------------------------------------------------------------
 get('/images') do
 	# Sorterbar efter olika kolumner
-	colors = getDatabase().execute('SELECT * FROM colors')
+	colors = getAllColors
 	slim(:'images/index', locals:{colors:colors})
 end
 
 post('/images/create') do
 	db = getDatabase()
 
-	user = db.execute('SELECT * FROM users WHERE id = ?', session[:userId]).first
+	user = getUserById(session[:userId])
 	timeSinceLastImage = Time.now.to_i - user['imageCreated']
 	if timeSinceLastImage < 60*60*24
 		flash[:imageError] = 'You can only create one image per day'
 		redirect('/images/new')
 	end
 
-	db.execute("UPDATE users SET imageCreated = ? WHERE id = ?", [Time.now.to_i, session[:userId]])
+	setUserImageCreated(Time.now.to_i, session[:userId])
 
 	hexCode = params[:hexCode]
-	if db.execute("SELECT * FROM colors WHERE hexCode = (?)", hexCode).empty?
-		db.execute("INSERT INTO colors (hexCode, amount) VALUES (?, ?)", [hexCode, 1])
+	if getColorByHexcode(hexCode).empty?
+		createColor(hexCode)
 		redirect('/images')
 	else
-		db.execute("UPDATE colors SET amount = amount + 1 WHERE hexCode = (?)", hexCode)
+		# db.execute("UPDATE colors SET amount = amount + 1 WHERE hexCode = (?)", hexCode)
+		addToColor(hexCode)
 		redirect('/images')
 	end
 end
 
 get('/images/new') do
-	# if session[:userId] == nil
-	# 	flash[:loginRequired] = 'You need to be logged in to create an image'
-	# 	session[:redirect] = '/images/new'
-	# 	redirect('/users/login')
-	# end
+	if session[:userId] == nil
+		flash[:loginRequired] = 'You need to be logged in to create an image'
+		session[:redirect] = '/images/new'
+		redirect('/users/login')
+	end
 
-	user = getDatabase().execute('SELECT * FROM users WHERE id = ?', session[:userId]).first
+	# user = getDatabase().execute('SELECT * FROM users WHERE id = ?', session[:userId]).first
+	user = getUserById(session[:userId])
 	timeSinceLastImage = Time.now.to_i - user['imageCreated'].to_i
 	timeUntilNextImage = 60*60*24 - timeSinceLastImage
 
@@ -214,12 +210,16 @@ end
 get('/images/show/:id') do
 	db = getDatabase()
 	id = params[:id].to_i
-	color = db.execute("SELECT * FROM colors WHERE id = #{id}").first
-	users = db.execute("SELECT * FROM users")
+	# color = db.execute("SELECT * FROM colors WHERE id = #{id}").first
+	color = getColorById(id)
+	# users = db.execute("SELECT * FROM users")
+	users = getAllUsers()
 	
 	if session[:userId] != nil
-		userSellOrders = db.execute("SELECT * FROM sellOrders WHERE userId = #{session[:userId]} AND colorId = #{id}")
-		userBuyOrders = db.execute("SELECT * FROM buyOrders WHERE userId = #{session[:userId]} AND colorId = #{id}")
+		# userSellOrders = db.execute("SELECT * FROM sellOrders WHERE userId = #{session[:userId]} AND colorId = #{id}")
+		userSellOrders = getAllSellOrdersFromUserAndColor(session[:userId], id)
+		# userBuyOrders = db.execute("SELECT * FROM buyOrders WHERE userId = #{session[:userId]} AND colorId = #{id}")
+		userBuyOrders = getAllBuyOrdersFromUserAndColor(session[:userId], id)
 	end
 	colorSellOrders = db.execute("SELECT * FROM sellOrders WHERE colorId = #{id} ORDER BY price ASC LIMIT 5")
 	colorBuyOrders = db.execute("SELECT * FROM buyOrders WHERE colorId = #{id} ORDER BY price DESC LIMIT 5")
@@ -242,34 +242,40 @@ post('/order/create') do
 	amount = params[:amount].to_i
 	orderType = params[:orderType]
 
-	user = db.execute("SELECT * FROM users WHERE id = ?", userId).first
-	userAmountOfColor = db.execute("SELECT Amount from userColor WHERE userId = ? AND colorId = ?", [userId, colorId]).first
-
-	puts orderType
+	# user = db.execute("SELECT * FROM users WHERE id = ?", userId).first
+	user = getUserById(userId)
+	# userAmountOfColor = db.execute("SELECT amount FROM userColor WHERE userId = ? AND colorId = ?", [userId, colorId]).first
+	userAmountOfColor = getUserColorByUserAndColor(userId, colorId)
 
 	if orderType == 'Buy'
 		if user['money'] < price*amount
 			flash[:orderError] = 'Not enough money'
 			redirect("/images/show/#{colorId}")
 		end
-		db.execute("INSERT INTO buyOrders (userId, colorId, price, amount) VALUES (?, ?, ?, ?)", [userId, colorId, price, amount])
+		# db.execute("INSERT INTO buyOrders (userId, colorId, price, amount) VALUES (?, ?, ?, ?)", [userId, colorId, price, amount])
+		createBuyOrder(userId, colorId, price, amount)
+		updateUserMoney(userId, -price * amount)
+		checkOrders('buy', getAllBuyOrders().last['id'])
 	elsif orderType == 'Sell'
 		if userAmountOfColor == nil || userAmountOfColor['amount'] < amount
 			flash[:orderError] = 'Not enough of this color'
 			redirect("/images/show/#{colorId}")
 		end
-		db.execute("INSERT INTO sellOrders (userId, colorId, price, amount) VALUES (?, ?, ?, ?)", [userId, colorId, price, amount])
+		# db.execute("INSERT INTO sellOrders (userId, colorId, price, amount) VALUES (?, ?, ?, ?)", [userId, colorId, price, amount])
+		createSellOrder(userId, colorId, price, amount)
+		updateUserColorAmount(userId, colorId, -amount)
+		checkOrders('sell', getAllSellOrders().last['id'])
 	else 
 		flash[:orderError] = 'Invalid order type'
 		redirect("/images/show/#{colorId}")
 	end
 
-
+	
 
 	redirect("/images/show/#{colorId}")
 end
 
-# stats ------------------------------------------------------------------------------
+# stats ------------------------------------------------------------------
 get('/stats') do
 	slim(:'stats/index')
 end
