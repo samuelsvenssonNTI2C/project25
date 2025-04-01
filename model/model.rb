@@ -63,11 +63,11 @@ def getAllSellOrders()
 end
 
 def getBuyOrderById(id)
-	return getDatabase.execute('SELECT * FROM buyOrders WHERE id = ?', [id])
+	return getDatabase.execute('SELECT * FROM buyOrders WHERE id = ?', [id]).first
 end
 
 def getSellOrderById(id)
-	return getDatabase.execute('SELECT * FROM sellOrders WHERE id = ?', [id])
+	return getDatabase.execute('SELECT * FROM sellOrders WHERE id = ?', [id]).first
 end
 
 def getAllBuyOrdersFromUser(id)
@@ -106,14 +106,14 @@ end
 
 def updateBuyOrder(id, deltaAmount)
 	getDatabase.execute('UPDATE buyOrders SET amount = amount + ? WHERE id = ?', [deltaAmount, id])
-	if getBuyOrdersById(id)['amount'] <= 0
+	if getBuyOrderById(id)['amount'] <= 0
 		deleteBuyOrder(id)
 	end
 end
 
 def updateSellOrder(id, deltaAmount)
 	getDatabase.execute('UPDATE sellOrders SET amount = amount + ? WHERE id = ?', [deltaAmount, id])
-	if getSellOrdersById(id)['amount'] <= 0
+	if getSellOrderById(id)['amount'] <= 0
 		deleteSellOrder(id)
 	end
 end
@@ -133,51 +133,78 @@ end
 
  # Transaction -----------------------------------------------------------
 def checkOrders(orderType, orderId)
+	puts 'nu checkar vi!!!'
 	if orderType == 'buy'
+		puts 'Det var en köporder'
 		buyOrder = getBuyOrderById(orderId)
 		buyerId = buyOrder['userId']
 		colorId = buyOrder['colorId']
+		puts "köporderns id: #{buyerId} och färgid: #{colorId}"
 		getAllSellOrders().each do |sellOrder|
+			puts 'Vi jämför med en sälj order'
 			if sellOrder['price'] == buyOrder['price']
+				puts 'vi hittade en matchning i pris'
 				if sellOrder['amount'] >= buyOrder['amount']
+					puts 'Det sälj mer än det köps'
 					amount = buyOrder['amount']
 				else
 					amount = sellOrder['amount']
+					puts 'Det köps mer än vad som säljs'
 				end
+				puts "total mängd blev #{amount}"
 				if getUserColorByUserAndColor(buyerId, colorId)
+					puts 'köparen hade av denna färg'
 					updateUserColorAmount(buyerId, colorId, amount)
 				else
+					puts 'köparen hade inga av denna färg'
 					createUserColor(buyerId, colorId, amount)
 				end
 
 				updateSellOrder(sellOrder['id'], -amount)
+				puts 'Vi uppdaterar säljordern'
 				updateBuyOrder(buyOrder['id'], -amount)
+				puts 'vi uppdaterar köpordern'
 
 				updateUserMoney(sellOrder['id'], sellOrder['price']*amount)
+				puts 'vi uppdaterar säljarens pengar'
 			end
 		end
 	elsif orderType == 'sell'
+		puts 'Det var en köporder'
 		sellOrder = getSellOrderById(orderId)
 		sellerId = sellOrder['userId']
 		colorId = sellOrder['colorId']
+		puts "säljorderns id: #{sellerId} och färgid: #{colorId}"
 		getAllBuyOrders().each do |buyOrder|
+			puts 'Vi jämför med en köp order'
 			if buyOrder['price'] == sellOrder['price']
+				puts 'vi hittade en matchning i pris'
 				if buyOrder['amount'] >= sellOrder['amount']
 					amount = sellOrder['amount']
+					puts 'Det köps mer än det säljs'
 				else
 					amount = buyOrder['amount']
+					puts 'Det säljs mer än det köps'
 				end
+				puts "total mängd blev #{amount}"
+
 				if getUserColorByUserAndColor(buyOrder['userId'], colorId)
 					updateUserColorAmount(buyOrder['userId'], colorId, amount)
+					puts 'köparen hade av denna färg'
 				else
+					puts 'köparen hade inga av denna färg'
 					createUserColor(buyOrder['userId'], colorId, amount)
 				end
 
 				updateBuyOrder(buyOrder['id'], -amount)
+				puts 'Vi uppdaterar köpordern'
 				updateSellOrder(sellOrder['id'], -amount)
+				puts 'Vi uppdaterar säljordern'
 
 				updateUserMoney(sellerId, sellOrder['price'] * amount)
+				puts 'vi uppdaterar säljarens pengar'
 			end
+			break
 		end
 	end
 end
