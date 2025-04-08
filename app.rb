@@ -29,7 +29,8 @@ enable :sessions
 
 # kolla inloggad användare vid skyddade actions
 
-
+# Route to redirect to home page
+# 
 get('/') do
 	redirect('/home')
 end
@@ -47,6 +48,12 @@ get('/home') do
 end
 
 # users ------------------------------------------------------------------
+# Logs in the user
+# 
+# @param username [String] the username of the user
+# @param password [String] the password of the user
+# 
+# @see Model#getUserByName
 post('/users/login') do
 	username = params[:username]
 	password = params[:password]
@@ -93,7 +100,8 @@ post('/users/login') do
 	end
 end
 
-
+# Logs out the user
+# 
 get('/users/logout') do
 	session.clear
 	redirect('/home')
@@ -105,6 +113,15 @@ get('/users/login') do
 	slim(:'users/login')
 end
 
+# Registers a new user
+# 
+# @param username [String] the username of the user
+# @param password [String] the password of the user
+# @param passwordConfirmation [String] the password confirmation of the user
+# @param admin [String] the admin level of the user
+# 
+# @see Model#getUserByName
+# @see Model#createUser
 post('/users/create') do
 	username = params[:username]
 	password = params[:password]
@@ -183,6 +200,18 @@ get('/images') do
 	slim(:'images/index', locals:{colors:colors})
 end
 
+# Creates a new image
+# 
+# @param hexCode [String] the hex code of the image
+# 
+# @see Model#getUserById
+# @see Model#setUserImageCreated
+# @see Model#getColorByHexcode
+# @see Model#addToColor
+# @see Model#createColor
+# @see Model#getUserColorByUserAndColor
+# @see Model#createUserColor
+# @see Model#updateUserColorAmount
 post('/images/create') do
 	user = getUserById(session[:userId])
 	timeSinceLastImage = Time.now.to_i - user['imageCreated']
@@ -252,6 +281,20 @@ get('/images/show/:id') do
 	slim(:'images/show', locals:{color:color, users:users, userSellOrders:userSellOrders, userBuyOrders:userBuyOrders, sellOrders:colorSellOrders, buyOrders:colorBuyOrders, toplist:toplist})
 end
 
+# Creates a new order
+# 
+# # @param colorId [Integer] the id of the color to create an order for
+# # @param price [Integer] the price per color
+# # @param amount [Integer] the amount of colors to buy/sell
+# # # @param orderType [String] the type of order (buy/sell)
+# 
+# @see Model#getUserById
+# @see Model#getUserColorByUserAndColor
+# @see Model#createBuyOrder
+# @see Model#updateUserMoney
+# @see Model#checkOrders
+# @see Model#createSellOrder
+# @see Model#updateUserColorAmount
 post('/order/create') do
 	if session[:userId] == nil
 		flash[:loginRequired] = 'You need to be logged in to create an order'
@@ -294,6 +337,15 @@ post('/order/create') do
 	redirect("/images/show/#{colorId}")
 end
 
+# Deletes an order
+# 
+# @param orderId [Integer] the id of the order to delete
+# @param orderType [String] the type of order (buy/sell)
+# 
+# @see Model#getBuyOrderById
+# @see Model#deleteBuyOrder
+# @see Model#getSellOrderById
+# @see Model#deleteSellOrder
 post('/order/delete') do
 	orderId = params[:orderId].to_i
 	orderType = params[:type]
