@@ -2,9 +2,27 @@ article id='home'
     article id='user'
         section id='userInfo'
             h1 Users info
+            - if session[:username]
+                p logged in user: #{session[:username]}
+                p Money: #{user['money']}
+            - else
+                p You are not logged in
 
-        section id='userOrders'
-            h1 Users orders
+        section id='userColors'
+            h1 Users colors
+            - if session[:username]
+                article id='imageIndex'
+                    - colors.each do |color| 
+                        article class='colorCard'
+                            a href='/images/show/#{color["id"]}'
+                                div id='colorImage' style='background-color: #{color["hexCode"]}'
+                            section id='colorInfo'
+                                h4 = 'HexCode: ' + color['hexCode']
+                                - amount = userColors.find {|u| u["colorId"] == color["id"]}["amount"].to_s
+                                h4 = 'Amount: ' + amount
+
+                            
+
 
     article id='topImages'
         h1 Top images

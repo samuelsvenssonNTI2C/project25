@@ -21,6 +21,7 @@ article id='imageShow'
                     input type="number" name="price" placeholder="Price per unit"
                     input type="submit" name="orderType" value="Sell"
                     input type="submit" name="orderType" value="Buy"
+
                 h4 Sell Orders
                 -userSellOrders.each do |order|
                     section.orderInfo 
@@ -28,6 +29,11 @@ article id='imageShow'
                         p = "User: #{user ? user["username"] : "Unknown"}"
                         p = "Amount: #{order['amount']}"
                         p = "Price: #{order['price']}"
+                        form action="/order/delete" method="post"
+                                input type="hidden" name="orderId" value="#{order['id']}"
+                                input type='hidden' name='type' value='sell'
+                                input type="submit" value="Delete Order"
+
                 h4 Buy Orders
                 -userBuyOrders.each do |order|
                     section.orderInfo
@@ -35,6 +41,10 @@ article id='imageShow'
                         p = "User: #{user ? user["username"] : "Unknown"}"
                         p = "Amount: #{order['amount']}"
                         p = "Price: #{order['price']}"
+                        form action="/order/delete" method="post"
+                                input type="hidden" name="orderId" value="#{order['id']}"
+                                input type='hidden' name='type' value='buy'
+                                input type="submit" value="Delete Order"
 
         section id='sellOrders'
             h2 Sell Orders
@@ -44,6 +54,11 @@ article id='imageShow'
                     p = "User: #{user ? user["username"] : "Unknown"}"
                     p = "Amount: #{order['amount']}"
                     p = "Price: #{order['price']}"
+                    - if session[:admin]
+                            form action="/order/delete" method="post"
+                                input type="hidden" name="orderId" value="#{order['id']}"
+                                input type='hidden' name='type' value='sell'
+                                input type="submit" value="Delete Order"
 
         section id='buyOrders'
             h2 Buy Orders
@@ -53,3 +68,8 @@ article id='imageShow'
                     p = "User: #{user ? user["username"] : "Unknown"}"
                     p = "Amount: #{order['amount']}"
                     p = "Price: #{order['price']}"
+                    - if session[:admin]
+                            form action="/order/delete" method="post"
+                                input type="hidden" name="orderId" value="#{order['id']}"
+                                input type='hidden' name='type' value='buy'
+                                input type="submit" value="Delete Order"

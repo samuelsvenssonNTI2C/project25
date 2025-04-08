@@ -16,12 +16,17 @@ def getUserById(id)
 	return getDatabase.execute('SELECT * FROM users WHERE id = ?', [id]).first
 end
 
-def getUsersByName(username)
-	return getDatabase.execute('SELECT * FROM users WHERE username = ?', [username])
+def getUserByName(username)
+	return getDatabase.execute('SELECT * FROM users WHERE username = ?', [username]).first
+end
+
+def getTopUsersByColor(color_id, limit = 10)
+  db = getDatabase()
+  db.execute("SELECT * FROM users WHERE id IN (SELECT userId FROM userColor WHERE colorId = ? ORDER BY amount DESC LIMIT ?)", [color_id, limit])
 end
 
 def createUser(username, password, adminLevel)
-	getDatabase.execute("INSERT INTO users (username, password, money, imageCreated, admin) VALUES (?,?,?,?)", [username, password, 0, 0, adminLevel])
+	getDatabase.execute("INSERT INTO users (username, password, money, imageCreated, admin) VALUES (?,?,?,?,?)", [username, password, 0, 0, adminLevel])
 end
 
 def setUserImageCreated(time, id)
@@ -41,8 +46,12 @@ def getColorById(id)
 	return getDatabase.execute('SELECT * FROM colors WHERE id = ?', [id]).first
 end
 
+def getColorsByUser(userId)
+	return getDatabase.execute('SELECT * FROM colors WHERE id IN (SELECT colorId FROM userColor WHERE userId = ?)', [userId])
+end
+
 def getColorByHexcode(hexCode)
-	return getDatabase.execute('SELECT * FROM colors WHERE hexCode = ?', [hexCode])
+	return getDatabase.execute('SELECT * FROM colors WHERE hexCode = ?', [hexCode]).first
 end
 
 def createColor(hexCode)
@@ -86,7 +95,15 @@ def getAllSellOrdersFromUserAndColor(id, colorId)
 	return getDatabase.execute('SELECT * FROM sellOrders WHERE userId = ? AND colorId = ?', [id, colorId])
 end
 
+def getSellOrdersByColorId(color_id, limit = 5)
+  db = getDatabase()
+  db.execute("SELECT * FROM sellOrders WHERE colorId = ? ORDER BY price ASC LIMIT ?", [color_id, limit])
+end
 
+def getBuyOrdersByColorId(color_id, limit = 5)
+  db = getDatabase()
+  db.execute("SELECT * FROM buyOrders WHERE colorId = ? ORDER BY price DESC LIMIT ?", [color_id, limit])
+end
 
 def createBuyOrder(userId, colorId, price, amount)
 	getDatabase.execute('INSERT INTO buyOrders (userId, colorId, price, amount) VALUES (?, ?, ?, ?)', [userId, colorId, price, amount])
@@ -97,10 +114,14 @@ def createSellOrder(userId, colorId, price, amount)
 end
 
 def deleteBuyOrder(id)
+	buyOrder = getBuyOrderById(id)
+	updateUserMoney(buyOrder['userId'], buyOrder['price'] * buyOrder['amount'])
 	getDatabase.execute('DELETE FROM buyOrders WHERE id = ?', [id])
 end
 
 def deleteSellOrder(id)
+	sellOrder = getSellOrderById(id)
+	updateUserColorAmount(sellOrder['userId'], sellOrder['colorId'], sellOrder['amount'])
 	getDatabase.execute('DELETE FROM sellOrders WHERE id = ?', [id])
 end
 
@@ -119,6 +140,10 @@ def updateSellOrder(id, deltaAmount)
 end
 
  # UserColor -------------------------------------------------------------
+def getUserColorByUser(userId)
+	return getDatabase.execute('SELECT * FROM userColor WHERE userId = ?', [userId])
+end
+
 def getUserColorByUserAndColor(userId, colorId)
 	return getDatabase.execute('SELECT * FROM userColor WHERE userId = ? AND colorId = ?', [userId, colorId]).first
 end
@@ -133,78 +158,62 @@ end
 
  # Transaction -----------------------------------------------------------
 def checkOrders(orderType, orderId)
-	puts 'nu checkar vi!!!'
 	if orderType == 'buy'
-		puts 'Det var en köporder'
 		buyOrder = getBuyOrderById(orderId)
 		buyerId = buyOrder['userId']
 		colorId = buyOrder['colorId']
-		puts "köporderns id: #{buyerId} och färgid: #{colorId}"
 		getAllSellOrders().each do |sellOrder|
-			puts 'Vi jämför med en sälj order'
 			if sellOrder['price'] == buyOrder['price']
-				puts 'vi hittade en matchning i pris'
 				if sellOrder['amount'] >= buyOrder['amount']
-					puts 'Det sälj mer än det köps'
 					amount = buyOrder['amount']
 				else
 					amount = sellOrder['amount']
-					puts 'Det köps mer än vad som säljs'
 				end
-				puts "total mängd blev #{amount}"
 				if getUserColorByUserAndColor(buyerId, colorId)
-					puts 'köparen hade av denna färg'
 					updateUserColorAmount(buyerId, colorId, amount)
 				else
-					puts 'köparen hade inga av denna färg'
 					createUserColor(buyerId, colorId, amount)
 				end
 
 				updateSellOrder(sellOrder['id'], -amount)
-				puts 'Vi uppdaterar säljordern'
 				updateBuyOrder(buyOrder['id'], -amount)
-				puts 'vi uppdaterar köpordern'
 
-				updateUserMoney(sellOrder['id'], sellOrder['price']*amount)
-				puts 'vi uppdaterar säljarens pengar'
+				updateUserMoney(sellOrder['userId'], sellOrder['price']*amount)
+				if getBuyOrderById(orderId) == nil
+					break
+				else 
+					buyOrder = getBuyOrderById(orderId)
+				end
 			end
 		end
 	elsif orderType == 'sell'
-		puts 'Det var en köporder'
 		sellOrder = getSellOrderById(orderId)
 		sellerId = sellOrder['userId']
 		colorId = sellOrder['colorId']
-		puts "säljorderns id: #{sellerId} och färgid: #{colorId}"
 		getAllBuyOrders().each do |buyOrder|
-			puts 'Vi jämför med en köp order'
 			if buyOrder['price'] == sellOrder['price']
-				puts 'vi hittade en matchning i pris'
 				if buyOrder['amount'] >= sellOrder['amount']
 					amount = sellOrder['amount']
-					puts 'Det köps mer än det säljs'
 				else
 					amount = buyOrder['amount']
-					puts 'Det säljs mer än det köps'
 				end
-				puts "total mängd blev #{amount}"
 
 				if getUserColorByUserAndColor(buyOrder['userId'], colorId)
 					updateUserColorAmount(buyOrder['userId'], colorId, amount)
-					puts 'köparen hade av denna färg'
 				else
-					puts 'köparen hade inga av denna färg'
 					createUserColor(buyOrder['userId'], colorId, amount)
 				end
 
 				updateBuyOrder(buyOrder['id'], -amount)
-				puts 'Vi uppdaterar köpordern'
 				updateSellOrder(sellOrder['id'], -amount)
-				puts 'Vi uppdaterar säljordern'
 
 				updateUserMoney(sellerId, sellOrder['price'] * amount)
-				puts 'vi uppdaterar säljarens pengar'
+				if getSellOrderById(orderId) == nil
+					break
+				else 
+					sellOrder = getSellOrderById(orderId)
+				end
 			end
-			break
 		end
 	end
 end
