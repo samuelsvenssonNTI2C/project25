@@ -43,8 +43,8 @@ end
 # 
 # @return [Array<Hash>] an array of hashes representing the users with the most of the specified color
 def getTopUsersByColor(color_id, limit = 10)
-  db = getDatabase()
-  return db.execute("SELECT * FROM users WHERE id IN (SELECT userId FROM userColor WHERE colorId = ? ORDER BY amount DESC LIMIT ?)", [color_id, limit])
+  	db = getDatabase()
+  	return db.execute("SELECT * FROM users WHERE id IN (SELECT userId FROM userColor WHERE colorId = ? ORDER BY amount DESC LIMIT ?)", [color_id, limit])
 end
 
 # Create a new user in the database
@@ -53,7 +53,7 @@ end
 # @param password [String] the password of the new user
 # @param adminLevel [Integer] the admin level of the new user (0 for normal user, 1 for admin)
 def createUser(username, password, adminLevel)
-	getDatabase.execute("INSERT INTO users (username, password, money, imageCreated, admin) VALUES (?,?,?,?,?)", [username, password, 0, 0, adminLevel])
+	getDatabase.execute("INSERT INTO users (username, password, money, imageCreated, admin) VALUES (?,?,?,?,?)", [username, password, 100, 0, adminLevel])
 end
 
 # Update the image creation time for a user
@@ -70,6 +70,23 @@ end
 # @param deltaMoney [Integer] the amount to add to the user's money
 def updateUserMoney(id, deltaMoney)
 	getDatabase.execute('UPDATE users SET money = money + ? WHERE id = ?', [deltaMoney, id])
+end
+
+# Delete a user from the database
+#
+# @param id [Integer] the ID of the user to delete
+def deleteUser(id)
+	getDatabase.execute('SELECT * FROM userColor WHERE userId = ?', [id]).each do |userColor|
+		getDatabase.execute('UPDATE colors SET amount = amount - ? WHERE id = ?', [userColor['amount'], userColor['colorId']])
+		if getColorById(userColor['colorId'])['amount'] <= 0
+			getDatabase.execute('DELETE FROM colors WHERE id = ?', [userColor['colorId']])
+		end
+	end
+
+	getDatabase.execute('DELETE FROM users WHERE id = ?', [id])
+	getDatabase.execute('Delete FROM userColor WHERE userId = ?', [id])
+	getDatabase.execute('Delete FROM buyOrders WHERE userId = ?', [id])
+	getDatabase.execute('Delete FROM sellOrders WHERE userId = ?', [id])
 end
 
 # Colors ----------------------------------------------------------------
@@ -283,6 +300,14 @@ def updateSellOrder(id, deltaAmount)
 end
 
 # UserColor -------------------------------------------------------------
+
+# Get all userColor relations from the database
+#
+# @return [Array<Hash>] an array of hashes representing all userColor relations
+def getAllUserColors()
+	return getDatabase.execute('SELECT * FROM userColor')
+end
+
 
 # Get all userColor relations from specified user
 # 

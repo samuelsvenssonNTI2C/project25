@@ -1,0 +1,11 @@
+h1 Alla users! 
+- if flash[:deleteError]
+    p.error = flash[:deleteError]
+- users.each do |user|
+    section class="statUserInfo"
+        h3 = "User: #{user['username']}"
+        p = "Money: #{user['money']}"
+        - if session[:admin]
+            form action="/users/delete" method="post"
+                input type="hidden" name="userId" value=user['id']
+                input type="submit" value="Delete user"

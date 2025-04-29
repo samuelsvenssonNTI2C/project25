@@ -4,6 +4,7 @@ require 'sinatra/flash'
 require 'slim'
 require 'sqlite3'
 require 'bcrypt'
+require 'time'
 
 require_relative 'model/model.rb'
 also_reload 'model/model.rb'
@@ -58,6 +59,15 @@ post('/users/login') do
 	username = params[:username]
 	password = params[:password]
 
+	if session[:failedLoginAttempts] == nil
+		session[:failedLoginAttempts] = []
+	end
+
+	if session[:failedLoginAttempts].length >= 3 && Time.now.to_i - session[:failedLoginAttempts][-3] < 60*5
+		flash[:loginBan] = 'Too many failed login attempts. Please try again in 5 minutes'
+		redirect('/users/login')
+	end
+
 	if username.empty?
 		flash[:loginError] = 'Missing username'
 		redirect('/users/login')
@@ -72,6 +82,7 @@ post('/users/login') do
 	if user == nil
 		flash[:loginError] = 'Username does not exist
 		Please register if you do not have an account'
+		session[:failedLoginAttempts] << Time.now.to_i
 		redirect('/users/login')
 	end
 
@@ -86,6 +97,7 @@ post('/users/login') do
 		else
 			session[:admin] = false
 		end
+		session[:failedLoginAttempts] = []
 
 		if session[:redirect] != nil
 			redirect = session[:redirect]
@@ -96,6 +108,7 @@ post('/users/login') do
 	else
 		flash[:username] = username
 		flash[:loginError] = 'Wrong username or password'
+		session[:failedLoginAttempts] << Time.now.to_i
 		redirect('/users/login')
 	end
 end
@@ -189,6 +202,21 @@ get('users/show/:id') do
 	slim(:'users/show', locals:{id:userId})
 end
 
+# Deletes a user
+#
+# # @param id [Integer] the id of the user to delete
+post('/users/delete') do
+	if session[:admin]
+		userId = params[:userId].to_i
+		if session[:userId] == userId
+			flash[:deleteError] = 'You cannot delete your own account'
+			redirect('/stats')
+		end
+		deleteUser(userId)
+	end
+	redirect('/stats')
+end
+
 # images -----------------------------------------------------------------
 
 # Display the images page
@@ -214,6 +242,16 @@ end
 # @see Model#updateUserColorAmount
 post('/images/create') do
 	user = getUserById(session[:userId])
+	hexCode = params[:hexCode]
+
+	if user == nil
+		flash[:loginRequired] = 'You need to be logged in to create an image'
+		redirect('/users/login')
+	end
+	if hexCode.empty?
+		flash[:imageError] = 'Missing hex code'
+		redirect('/images/new')
+	end
 	timeSinceLastImage = Time.now.to_i - user['imageCreated']
 	if timeSinceLastImage < 60*60*24
 		flash[:imageError] = 'You can only create one image per day'
@@ -222,7 +260,6 @@ post('/images/create') do
 
 	setUserImageCreated(Time.now.to_i, session[:userId])
 
-	hexCode = params[:hexCode]
 	if getColorByHexcode(hexCode)
 		addToColor(hexCode)
 	else
@@ -296,17 +333,23 @@ end
 # @see Model#createSellOrder
 # @see Model#updateUserColorAmount
 post('/order/create') do
-	if session[:userId] == nil
+	userId = session[:userId]
+
+	if userId == nil
 		flash[:loginRequired] = 'You need to be logged in to create an order'
 		session[:redirect] = "/images/show/#{params[:colorId]}"
 		redirect('/users/login')
 	end
 
-	userId = session[:userId]
 	colorId = params[:colorId].to_i
 	price = params[:price].to_i
 	amount = params[:amount].to_i
 	orderType = params[:orderType]
+
+	if price == nil || amount == nil || price <= 0 || amount <= 0
+		flash[:orderError] = 'Invalid price or amount'
+		redirect("/images/show/#{colorId}")
+	end
 
 	user = getUserById(userId)
 	userAmountOfColor = getUserColorByUserAndColor(userId, colorId)
@@ -350,11 +393,17 @@ post('/order/delete') do
 	orderId = params[:orderId].to_i
 	orderType = params[:type]
 	if orderType == 'buy'
-		colorId = getBuyOrderById(orderId)['colorId']
-		deleteBuyOrder(orderId)
+		order = getBuyOrderById(orderId)
+		colorId = order['colorId']
+		if order['userId'] == session[:userId] || session[:admin]
+			deleteBuyOrder(orderId)
+		end
 	elsif orderType == 'sell'
-		colorId = getSellOrderById(orderId)['colorId']
-		deleteSellOrder(orderId)
+		order = getSellOrderById(orderId)
+		colorId = order['colorId']
+		if order['userId'] == session[:userId] || session[:admin]
+			deleteSellOrder(orderId)
+		end
 	end
 	redirect("/images/show/#{colorId}")
 end
@@ -364,5 +413,6 @@ end
 # Display the stats page
 #
 get('/stats') do
-	slim(:'stats/index')
+	users = getAllUsers()
+	slim(:'stats/index', locals:{users:users})
 end

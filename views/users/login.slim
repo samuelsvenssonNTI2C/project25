@@ -2,12 +2,15 @@
     p.error = flash[:loginError]
 - if flash[:loginRequired]
     p.error = flash[:loginRequired]
-form action="/users/login" method="post"
-    -if flash[:username]
-        input type="text" name="username" value=flash[:username] placeholder="Användarnamn"
-    -else
-        input type="text" name="username" placeholder="Användarnamn"
-    input type="password" name="password" placeholder="Lösenord"
-    input type="submit" value="Login"
+- if flash[:loginBan]
+    p.error = flash[:loginBan]
+-else
+    form action="/users/login" method="post"
+        -if flash[:username]
+            input type="text" name="username" value=flash[:username] placeholder="Användarnamn"
+        -else
+            input type="text" name="username" placeholder="Användarnamn"
+        input type="password" name="password" placeholder="Lösenord"
+        input type="submit" value="Login"
 
 a href="/users/new" Registrera
